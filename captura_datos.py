@@ -4,7 +4,7 @@ import os.path
 from time import sleep
 import pandas as pd
 from sense_hat import SenseHat
-import keyboard
+import cv2
 import matplotlib.pyplot as plt
 
 sense = SenseHat()
@@ -36,15 +36,6 @@ archivo = "datos"
 tipo_archivo = ".csv"
 bucle = True
 
-# Función para detener el bucle cuando se presiona 'q'
-def detener_bucle(e):
-    global bucle
-    if e.name == 'q':
-        print("Tecla 'q' presionada. Deteniendo la ejecución.")
-        bucle = False
-
-# Registrar la función detener_bucle para el evento de tecla presionada
-keyboard.hook(detener_bucle)
 
 # Configurar la visualización en tiempo real
 plt.ion()
@@ -91,6 +82,14 @@ while bucle:
     ax[1].legend()
 
     plt.pause(0.01)
+
+# Esperar 100 milisegundos y verificar si la tecla 'q' fue presionada
+    key = cv2.waitKey(100) & 0xFF
+
+    # Si la tecla 'q' fue presionada, salir del bucle
+    if key == ord("q"):
+        print("Tecla 'q' presionada. Deteniendo la ejecución.")
+        break
 
 # Detener la visualización al finalizar
 plt.ioff()
