@@ -4,43 +4,59 @@ import os.path
 from time import sleep
 import pandas as pd
 from sense_hat import SenseHat
-sense=SenseHat()
+import keyboard
+import matplotlib.pyplot as plt
 
-t=[]
-t_sample=[]
+sense = SenseHat()
+
+t = []
+t_sample = []
 accel_x, accel_y, accel_z = [], [], []
 gyros_x, gyros_y, gyros_z = [], [], []
-t_ini=time.time()
-t_ant=t_ini
-muestras=400 # muestras que tomamos
-accel_average=[]
+t_ini = time.time()
+t_ant = t_ini
+muestras = 400
+accel_average = []
 
-ejercicio=["Extension rodilla",
-           "Curl femoral",
-           "Abduccion cadera",
-           "Aduccion cadera",
-           "Patada de gluteo"]
+ejercicio = ["Extension rodilla",
+             "Curl femoral",
+             "Abduccion cadera",
+             "Aduccion cadera",
+             "Patada de gluteo"]
 
-sexos=["Hombre","Mujer"]
+sexos = ["Hombre", "Mujer"]
 
 # Variables a configurar
-edad=24
-sexo=sexos[0]
-tipo_ejercicio=ejercicio[0]
+edad = 24
+sexo = sexos[0]
+tipo_ejercicio = ejercicio[0]
 
 # CSV a generar
-archivo="datos" # nombre del archivo
-tipo_archivo=".csv" # extensión 
-bucle=True
-# Bucle para tomar las muestras hasta que se pulse el boton
-while(bucle):
-    events = sense.stick.get_events()
+archivo = "datos"
+tipo_archivo = ".csv"
+bucle = True
 
-    for event in events:
-        if event.direction == 'middle':
-            bucle=False
+# Función para detener el bucle cuando se presiona 'q'
+def detener_bucle(e):
+    global bucle
+    if e.name == 'q':
+        print("Tecla 'q' presionada. Deteniendo la ejecución.")
+        bucle = False
 
-    t_actual=time.time()
+# Registrar la función detener_bucle para el evento de tecla presionada
+keyboard.hook(detener_bucle)
+
+# Configurar la visualización en tiempo real
+plt.ion()
+fig, ax = plt.subplots(2, 1, sharex=True)
+fig.suptitle('Datos de Aceleración y Giroscopio en Tiempo Real')
+ax[0].set_ylabel('Aceleración (Gs)')
+ax[1].set_ylabel('Giroscopio (rad/s)')
+ax[1].set_xlabel('Tiempo (s)')
+
+# Bucle para tomar las muestras hasta que se pulse el botón
+while bucle:
+    t_actual = time.time()
 
     # Lectura de la Aceleración en Gs
     acceleration = sense.get_accelerometer_raw()
@@ -55,33 +71,30 @@ while(bucle):
     gyros_z.append(gyroscope['z'])
 
     # Tiempo
-    t.append(t_actual-t_ini)
-    t_sample.append(t_actual-t_ant)
-    
-    t_ant=t_actual
-    
-sense=SenseHat()
-O = [255,0,0]
-X = [255,255,0]
+    t.append(t_actual - t_ini)
+    t_sample.append(t_actual - t_ant)
 
-UNO = [
-  O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O,
-  O, O, O, X, X, O, O, O,
-  O, O, O, X, X, O, O, O,
-  O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O,
-  O, O, O, O, O, O, O, O,
-  ]
+    t_ant = t_actual
 
-# fin de la toma de muestras
-sense.set_pixels(UNO) 
-sleep(10)
-sense.clear()
+    # Actualizar gráficos en tiempo real
+    ax[0].cla()
+    ax[1].cla()
 
-print("Rate: ",int(1/float(format(stats.mean(t_sample),"f")))," Hz")
+    ax[0].plot(t, accel_x, label='Aceleración X')
+    ax[0].plot(t, accel_y, label='Aceleración Y')
+    ax[0].plot(t, accel_z, label='Aceleración Z')
+    ax[0].legend()
 
+    ax[1].plot(t, gyros_x, label='Giroscopio X')
+    ax[1].plot(t, gyros_y, label='Giroscopio Y')
+    ax[1].plot(t, gyros_z, label='Giroscopio Z')
+    ax[1].legend()
+
+    plt.pause(0.01)
+
+# Detener la visualización al finalizar
+plt.ioff()
+plt.show()
 
 # Crear un DataFrame con los datos
 df = pd.DataFrame({
@@ -95,22 +108,21 @@ df = pd.DataFrame({
     'gyros_z': gyros_z,
     'edad': edad,
     'sexo': sexo
-    })
+})
 
-#El siguiente código comprueba que no hay ningun archivo con su nombre para no sobreescribirlo
-intentos=0
-while(os.path.isfile(archivo+tipo_archivo)):
-    #En caso de que exista un fichero con dicho nombre, le pone un numero al final (consecutivo)
-    print("El archivo",archivo,"ya existe")
-    intentos+=1
-    if(intentos>1):
-        archivo=archivo[:-1]
-    archivo=archivo+str(intentos)
+# El siguiente código comprueba que no hay ningún archivo con su nombre para no sobrescribirlo
+intentos = 0
+while os.path.isfile(archivo + tipo_archivo):
+    print("El archivo", archivo, "ya existe")
+    intentos += 1
+    if intentos > 1:
+        archivo = archivo[:-1]
+    archivo = archivo + str(intentos)
 
-print("Se guardará el archivo con nombre: ",archivo)
+print("Se guardará el archivo con nombre: ", archivo)
 
 # Crea un archivo csv y guarda los datos
-df.to_csv(archivo+tipo_archivo, index=False, float_format='%.6f')
+df.to_csv(archivo + tipo_archivo, index=False, float_format='%.6f')
 
 
 
