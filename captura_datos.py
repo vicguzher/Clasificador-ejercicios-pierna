@@ -4,8 +4,7 @@ import os.path
 from time import sleep
 import pandas as pd
 from sense_hat import SenseHat
-import keyboard
-import matplotlib.pyplot as plt
+import pygame
 
 sense = SenseHat()
 
@@ -34,17 +33,9 @@ tipo_ejercicio = ejercicio[0]
 # CSV a generar
 archivo = "datos"
 tipo_archivo = ".csv"
-bucle = True
 
-# Función para detener el bucle cuando se presiona 'q'
-def detener_bucle(e):
-    global bucle
-    if e.name == 'q':
-        print("Tecla 'q' presionada. Deteniendo la ejecución.")
-        bucle = False
-
-# Registrar la función detener_bucle para el evento de tecla presionada
-keyboard.hook(detener_bucle)
+# Inicializar Pygame para manejar eventos del teclado
+pygame.init()
 
 # Configurar la visualización en tiempo real
 plt.ion()
@@ -54,8 +45,8 @@ ax[0].set_ylabel('Aceleración (Gs)')
 ax[1].set_ylabel('Giroscopio (rad/s)')
 ax[1].set_xlabel('Tiempo (s)')
 
-# Bucle para tomar las muestras hasta que se pulse el botón
-while bucle:
+# Bucle para tomar las muestras hasta que se pulse la tecla 'q'
+while True:
     t_actual = time.time()
 
     # Lectura de la Aceleración en Gs
@@ -92,9 +83,13 @@ while bucle:
 
     plt.pause(0.01)
 
-# Detener la visualización al finalizar
-plt.ioff()
-plt.show()
+    # Capturar eventos del teclado
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                print("Tecla 'q' presionada. Deteniendo la ejecución.")
+                pygame.quit()  # Cerrar Pygame
+                break
 
 # Crear un DataFrame con los datos
 df = pd.DataFrame({
@@ -123,6 +118,5 @@ print("Se guardará el archivo con nombre: ", archivo)
 
 # Crea un archivo csv y guarda los datos
 df.to_csv(archivo + tipo_archivo, index=False, float_format='%.6f')
-
 
 
