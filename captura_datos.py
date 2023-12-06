@@ -1,11 +1,12 @@
+
 import time
 import statistics as stats
 import os.path
 from time import sleep
 import pandas as pd
 from sense_hat import SenseHat
-import cv2
 import matplotlib.pyplot as plt
+from pynput import keyboard
 
 sense = SenseHat()
 
@@ -36,6 +37,14 @@ archivo = "datos"
 tipo_archivo = ".csv"
 bucle = True
 
+def detener_bucle(key):
+    global bucle
+    if key == keyboard.Key.esc:
+        print("Tecla 'Esc' presionada. Deteniendo la ejecución.")
+        bucle = False
+        # Configurar el listener de teclado
+listener = keyboard.Listener(on_press=detener_bucle)
+listener.start()
 
 # Configurar la visualización en tiempo real
 plt.ion()
@@ -47,6 +56,13 @@ ax[1].set_xlabel('Tiempo (s)')
 
 # Bucle para tomar las muestras hasta que se pulse el botón
 while bucle:
+    
+    #events = sense.stick.get_events()
+
+    #for event in events:
+     #   if event.direction == 'middle':
+      #      bucle=False
+
     t_actual = time.time()
 
     # Lectura de la Aceleración en Gs
@@ -83,17 +99,32 @@ while bucle:
 
     plt.pause(0.01)
 
-# Esperar 100 milisegundos y verificar si la tecla 'q' fue presionada
-    key = cv2.waitKey(100) & 0xFF
+sense=SenseHat()
+O = [255,0,0]
+X = [255,255,0]
 
-    # Si la tecla 'q' fue presionada, salir del bucle
-    if key == ord("q"):
-        print("Tecla 'q' presionada. Deteniendo la ejecución.")
-        break
+UNO = [
+  O, O, O, O, O, O, O, O,
+  O, O, O, O, O, O, O, O,
+  O, O, O, O, O, O, O, O,
+  O, O, O, X, X, O, O, O,
+  O, O, O, X, X, O, O, O,
+  O, O, O, O, O, O, O, O,
+  O, O, O, O, O, O, O, O,
+  O, O, O, O, O, O, O, O,
+  ]
+
+# fin de la toma de muestras
+sense.set_pixels(UNO) 
+sleep(10)
+sense.clear()
+
+print("Rate: ",int(1/float(format(stats.mean(t_sample),"f")))," Hz")
 
 # Detener la visualización al finalizar
 plt.ioff()
-plt.show()
+plt.close()
+
 
 # Crear un DataFrame con los datos
 df = pd.DataFrame({
@@ -122,5 +153,4 @@ print("Se guardará el archivo con nombre: ", archivo)
 
 # Crea un archivo csv y guarda los datos
 df.to_csv(archivo + tipo_archivo, index=False, float_format='%.6f')
-
 
