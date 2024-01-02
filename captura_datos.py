@@ -28,12 +28,12 @@ ejercicio = ["Extension rodilla",
 sexos = ["Hombre", "Mujer"]
 
 # Variables a configurar
-edad = 24
-sexo = sexos[0]
-tipo_ejercicio = ejercicio[0]
+edad = 23
+sexo = sexos[1]
+tipo_ejercicio = ejercicio[2]
 
 # CSV a generar
-archivo = "datos"
+nombre_archivo = "datos"
 tipo_archivo = ".csv"
 bucle = True
 
@@ -142,12 +142,11 @@ df = pd.DataFrame({
 
 # El siguiente código comprueba que no hay ningún archivo con su nombre para no sobrescribirlo
 intentos = 0
+archivo = nombre_archivo
 while os.path.isfile(archivo + tipo_archivo):
     print("El archivo", archivo, "ya existe")
     intentos += 1
-    if intentos > 1:
-        archivo = archivo[:-1]
-    archivo = archivo + str(intentos)
+    archivo = nombre_archivo + str(intentos)
 
 print("Se guardará el archivo con nombre: ", archivo)
 
