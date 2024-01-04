@@ -17,6 +17,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import itertools
+from sklearn.utils import shuffle
 
 plt.style.use("seaborn") # estilo de gráficas
 
@@ -63,47 +64,12 @@ STEP_DISTANCE = 5
 
 #%% cargamos los datos
 
-# column_names = ['tiempo',
-#                     'tipo',
-#                     'accel_x',
-#                     'accel_y',
-#                     'accel_z',
-#                     'gyros_x',
-#                     'gyros_y',
-#                     'gyros_z',
-#                     'edad',
-#                     'sexo'
-#                     ]
-
 df = pd.read_csv("dataset\datos_completos.csv")
-
-
 print(df.info())
 
 #%% Datos que tenemos
 
 print(df.shape)
-
-#%% Procesamiento de los datos
-
-# eliminamos el ; del eje z 
-#df['z-axis'].replace(regex=True, inplace=True, to_replace=r';',
-      #value=r'')
-
-#%% convertimos a flotante
-
-# def convert_to_float(x):
-#     try:
-#         return float(x)
-#     except:
-#         return np.nan
-
-# df['z-axis'] = df['z-axis'].apply(convert_to_float)
-
-
-#%% Eliminamos entradas que contengan Nan --> ausencia de datos
-
-#df.dropna(axis=1, how='any', inplace=True)
 
 #%% Mostramos los primeros datos
 
@@ -113,8 +79,31 @@ print(df.head())
 
 print(df.tail())
 
-#%% Visualizamos la cantidad de datos que tenemos
-# de cada actividad 
+#%% Visualizamos la cantidad de datos que tenemos de cada actividad 
+
+actividades = df['tipo'].value_counts()
+plt.bar(range(len(actividades)), actividades.values)
+plt.xticks(range(len(actividades)), actividades.index)
+
+#%% TODO: balancear
+
+# Encontrar el número mínimo de muestras entre las clases
+print(actividades)
+min_muestras = min(actividades)
+
+print("Se eliminan muestras aleatoriamente para balancear las clases a ", min_muestras, "muestras")
+indices_a_eliminar = []
+for label in set(df['tipo']):
+    
+    # Indices de la clase actual
+    indices = df.index[df['tipo'] == label].tolist()
+    # Mezclamos aleatoriamente los índices para eliminar muestras aleatorias
+    indices_shuffled = shuffle(indices, random_state=42)
+    # Seleccionar las muestras a eliminar si superan el mínimo
+    indices_a_eliminar.extend(indices_shuffled[min_muestras:])
+    
+# Eliminamos las muestras 
+df = df.drop(indices_a_eliminar)
 
 actividades = df['tipo'].value_counts()
 plt.bar(range(len(actividades)), actividades.values)
