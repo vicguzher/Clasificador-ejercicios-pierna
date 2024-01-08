@@ -16,7 +16,6 @@ accel_x, accel_y, accel_z = [], [], []
 gyros_x, gyros_y, gyros_z = [], [], []
 t_ini = time.time()
 t_ant = t_ini
-muestras = 400
 accel_average = []
 
 ejercicio = ["Extension rodilla",
@@ -57,12 +56,6 @@ ax[1].set_xlabel('Tiempo (s)')
 # Bucle para tomar las muestras hasta que se pulse el botón
 while bucle:
     
-    #events = sense.stick.get_events()
-
-    #for event in events:
-     #   if event.direction == 'middle':
-      #      bucle=False
-
     t_actual = time.time()
 
     # Lectura de la Aceleración en Gs

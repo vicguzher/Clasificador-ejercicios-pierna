@@ -11,6 +11,7 @@ from tensorflow.keras.layers import Flatten
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Conv1D
 from tensorflow.keras.layers import MaxPool1D
+from tensorflow.keras import regularizers
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 import numpy as np
@@ -22,8 +23,8 @@ from sklearn.utils import shuffle
 plt.style.use("seaborn") # estilo de gráficas
 
 #%% Creación del archivo con todos los datos
-if not os.path.exists('dataset\datos_completos.csv'):
-    # Especifica la carpeta donde se encuentran tus archivos CSV
+if not os.path.exists('datos.csv'):
+    # Carpeta donde se encuentran archivos CSV
     carpeta = 'dataset'
     
     # Lista para almacenar todos los marcos de datos
@@ -43,19 +44,18 @@ if not os.path.exists('dataset\datos_completos.csv'):
     df_final = pd.concat(marcos_de_datos, ignore_index=True)
     
     # Guarda el DataFrame resultante en un nuevo archivo CSV
-    df_final.to_csv('dataset\datos_completos.csv', index=False, float_format='%.6f')
+    df_final.to_csv('datos.csv', index=False, float_format='%.6f')
     
 #%%  Etiquetas de las actividades
 
-LABELS = ['Extension rodilla',
-             'Curl femoral',
-             'Abduccion cadera',
-             'Aduccion cadera',
-             'Patada de gluteo']
+LABELS = ['Abduccion cadera',
+          'Aduccion cadera',
+          'Curl femoral',
+          'Extension rodilla',
+          'Patada de gluteo']
 
 # El número de pasos dentro de un segmento de tiempo
-TIME_PERIODS = 60
-
+TIME_PERIODS = 50
 # Los pasos a dar de un segmento al siguiente; si este valor es igual a
 # TIME_PERIODS, entonces no hay solapamiento entre los segmentos
 STEP_DISTANCE = 5
@@ -64,7 +64,7 @@ STEP_DISTANCE = 5
 
 #%% cargamos los datos
 
-df = pd.read_csv("dataset\datos_completos.csv")
+df = pd.read_csv("datos.csv")
 print(df.info())
 
 #%% Datos que tenemos
@@ -85,29 +85,33 @@ actividades = df['tipo'].value_counts()
 plt.bar(range(len(actividades)), actividades.values)
 plt.xticks(range(len(actividades)), actividades.index)
 
-#%% TODO: balancear
 
-# Encontrar el número mínimo de muestras entre las clases
-print(actividades)
-min_muestras = min(actividades)
+#%% Balanceo de clases
+BALANCEAR = False
 
-print("Se eliminan muestras aleatoriamente para balancear las clases a ", min_muestras, "muestras")
-indices_a_eliminar = []
-for label in set(df['tipo']):
+if (BALANCEAR):
+    # Encontrar el número mínimo de muestras entre las clases
+    print(actividades)
+    # max_muestras = min(actividades)
+    max_muestras = 5000
     
-    # Indices de la clase actual
-    indices = df.index[df['tipo'] == label].tolist()
-    # Mezclamos aleatoriamente los índices para eliminar muestras aleatorias
-    indices_shuffled = shuffle(indices, random_state=42)
-    # Seleccionar las muestras a eliminar si superan el mínimo
-    indices_a_eliminar.extend(indices_shuffled[min_muestras:])
+    print("Se eliminan muestras  para balancear las clases a ", max_muestras, "muestras")
+    indices_a_eliminar = []
     
-# Eliminamos las muestras 
-df = df.drop(indices_a_eliminar)
-
-actividades = df['tipo'].value_counts()
-plt.bar(range(len(actividades)), actividades.values)
-plt.xticks(range(len(actividades)), actividades.index)
+    for label in set(df['tipo']):
+        
+        # Indices de la clase actual
+        indices = df.index[df['tipo'] == label].tolist()
+        
+        # Seleccionar las muestras a eliminar si superan el mínimo
+        indices_a_eliminar.extend(indices[max_muestras:])
+        
+    # Eliminamos las muestras 
+    df = df.drop(indices_a_eliminar)
+    
+    actividades_balanceadas = df['tipo'].value_counts()
+    plt.bar(range(len(actividades)), actividades_balanceadas.values)
+    plt.xticks(range(len(actividades_balanceadas)), actividades_balanceadas.index)
 
 #%% visualizamos 
 
@@ -134,7 +138,7 @@ def dibuja_datos_aceleracion(subset, actividad):
     plt.yticks(fontsize=7)
 
 for actividad in np.unique(df['tipo']):
-    subset = df[df['tipo'] == actividad][:30]
+    subset = df[df['tipo'] == actividad][60:90]
     dibuja_datos_aceleracion(subset, actividad)
 
 #%% Codificamos la actividad de manera numérica
@@ -147,8 +151,6 @@ le = preprocessing.LabelEncoder()
 
 # Añadir una nueva columna al DataFrame existente con los valores codificados
 df[LABEL] = le.fit_transform(df['tipo'].values.ravel())
-
-
 
 print(df.head())
 
@@ -170,24 +172,26 @@ plt.xlabel("Tiempo")
 plt.ylabel("Acel X")
 
 #%% Disión datos den entrenamiento y test
+df_train, df_test = pd.DataFrame(), pd.DataFrame()
+for label in set(df['tipo']):
+    # Dividir los datos de cada clase en train y test
+    df_label = df[df['tipo'] == label]
+    df_label_train, df_label_test = train_test_split(df_label, test_size=0.2, shuffle=False)
+    # Concatenar con los conjuntos existentes
+    df_train = pd.concat([df_train, df_label_train])
+    df_test = pd.concat([df_test, df_label_test])
 
-# df_test = df[df['user-id'] > 28]
-# df_train = df[df['user-id'] <= 28]
-#%%
-#Realizamos el one-hote econding para los datos de salida
+plt.figure(figsize=(12, 6))
+actividades_train= df_train['tipo'].value_counts()
+plt.bar(range(len(actividades_train)), actividades_train.values)
+plt.xticks(range(len(actividades_train)), actividades_train.index)
 
+actividades_test = df_test['tipo'].value_counts()
+plt.bar(range(len(actividades_test)), actividades_test.values)
+plt.xticks(range(len(actividades_test)), actividades_test.index)
 
-
-# Se divide el Dataset en Train y Test
-# Se barajan antes de dividirlo (shuffle=True)
-# Se dividen de forma que entrenamiento y test estén balanceados (stratify=y)
-# Se dividen de forma aleatoria, pero siempre la misma (random_state=int)
-y=df.loc[:, "tipo"].to_numpy()
-
-df_train, df_test = train_test_split(df, test_size=0.2,stratify=None,shuffle=False,random_state=5)
-
-print("Entrenamiento", df_train.shape)
-print("Test", df_test.shape)
+print(actividades_train)
+print(actividades_test)
 
 #%% comprobamos cual ha sido la división
 
@@ -234,7 +238,7 @@ x_test, y_test = create_segments_and_labels(df_test,
                                               STEP_DISTANCE,
                                               LABEL)
 
-#%% observamos la nueva forma de los datos (80, 3)
+#%% observamos la nueva forma de los datos
 
 print('x_train shape: ', x_train.shape)
 print(x_train.shape[0], 'training samples')
@@ -246,15 +250,12 @@ num_time_periods, num_sensors = x_train.shape[1], x_train.shape[2]
 num_classes = le.classes_.size
 print(list(le.classes_))
 
-#%% transformamos los datos a flotantes
+#%% Transformamos los datos a flotantes
 
 x_train = x_train.astype('float32')
-#y_train = y_train.astype('float32')
-
 x_test = x_test.astype('float32')
-#y_test = y_test.astype('float32')
 
-
+#%% One-hot encoding
 from sklearn.preprocessing import OneHotEncoder
 
 cat_encoder = OneHotEncoder()
@@ -263,22 +264,21 @@ y_train = y_train_hot.toarray()
 
 #%% RED NEURONAL
 
-
 epochs = 70
-batch_size = 5
+batch_size = 70
 filters = 128
 n_timesteps, n_features, n_outputs = x_train.shape[1], x_train.shape[2], y_train.shape[1]
 
 model = Sequential()
 model.add(Conv1D(filters=filters, kernel_size=5, activation='relu', input_shape=(n_timesteps,n_features)))
 model.add(Conv1D(filters=filters/2, kernel_size=5, activation='relu'))
-model.add(Dropout(0.5))
+model.add(Dropout(0.7))
 model.add(MaxPool1D(pool_size=2))
 model.add(Flatten())
-model.add(Dense(1000, activation='relu'))
+model.add(Dense(250, activation='relu'))
 model.add(Dense(n_outputs, activation='softmax'))
 model.summary()
-#%% Compilamps el modelo y entrenamos
+#%% Compilamos el modelo y entrenamos
 
 from tensorflow.keras import callbacks
 
@@ -301,8 +301,6 @@ history = train_log = model.fit(x_train,
 
 #%% visualizamos el entrenamiento
 import matplotlib.pyplot as plt
-
-# Suponiendo que `history` contiene los datos de entrenamiento y validación de tu modelo
 
 # Precisión
 plt.figure(figsize=(12, 6))
@@ -337,15 +335,6 @@ test_loss, test_acc = model.evaluate(x_test, y_test)
 
 print("Test accuracy", test_acc)
 print("Test loss", test_loss)
-
-
-# test_loss, test_accuracy = model.evaluate(x_test, y_test, batch_size=batch_size, verbose=0)
-
-# print("Test accuracy", test_accuracy)
-# print("Test loss", test_loss)
-
-
-
 
 #%%
 # Print confusion matrix for training data
